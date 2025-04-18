@@ -1,0 +1,14 @@
+---
+
+- hosts: all
+  become: true
+  tasks:
+
+  - name: Updating Repo Index
+    yum:
+      update_cache: yes 
+
+  - name: Uninstall HTTP package
+    yum:
+      name: httpd
+      state: absent 
