@@ -1,0 +1,16 @@
+---
+
+- hosts: all
+  become: true
+  tasks:
+
+  - name: install HTTP package
+    yum:
+      name: httpd
+      state: latest
+
+  - name: Start and enable httpd service
+    service:
+      name: httpd
+      state: started
+      enabled: true 
