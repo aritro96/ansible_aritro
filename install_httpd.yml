@@ -4,6 +4,10 @@
   become: true
   tasks:
 
+  - name: Updating Repo Index
+    yum:
+      update_cache: yes 
+
   - name: install HTTP package
     yum:
       name: httpd
