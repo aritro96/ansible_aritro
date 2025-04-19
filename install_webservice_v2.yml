@@ -9,19 +9,28 @@
       update_cache: yes 
     when: ansible_distribution in ["Rocky","CentOS"]
 
-  - name: Uninstall HTTP package
+  - name: install HTTP package
     yum:
       name: httpd
-      state: absent 
+      state: latest
+    when: ansible_distribution in ["Rocky","CentOS"]
+
+  - name: Start and enable httpd service
+    service:
+      name: httpd
+      state: started
+      enabled: true 
     when: ansible_distribution in ["Rocky","CentOS"]
 
   - name: Updating Repo Index
     apt:
-      update_cache: true
+      update_cache: yes
     when: ansible_distribution in ["Ubuntu","Debian"]
-  
-  - name: Removing Apache Package
+
+  - name: install HTTP package
     apt:
-     name: apache2
-     state: absent
+      name: apache2
+      state: latest
     when: ansible_distribution in ["Ubuntu","Debian"]
+
+
