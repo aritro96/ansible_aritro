@@ -1,3 +1,12 @@
+[webservers]
 10.0.0.20
-10.0.0.25
 10.0.0.30
+
+[db_servers]
+10.0.0.25
+
+[file_servers]
+10.0.0.35
+
+[workstation]
+10.0.0.15
