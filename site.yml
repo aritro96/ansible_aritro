@@ -1,0 +1,43 @@
+---
+- name: "Update all systems"
+  hosts: all
+  become: true
+  pre_tasks:
+
+    - name: "Updating Cache & Repos on Ubuntu/Debian"
+      tags: always
+      apt:
+        update_cache: yes
+        upgrade: dist
+      when: ansible_distribution in ["Ubuntu", "Debian"]
+
+    - name: "Updating Cache & Repos on Rocky/CentOS"
+      dnf:
+        update_cache: yes
+        name: "*"
+        state: latest
+      when: ansible_distribution in ["Rocky", "CentOS"]
+
+- name: "Install Web Server and Modules"
+  hosts: webservers
+  become: true
+  tasks:
+
+    - name: "Install Apache and mod_wsgi on Ubuntu/Debian"
+      tags: apache,apache2,Ubuntu
+      apt:
+        name:
+          - apache2
+          - libapache2-mod-wsgi-py3
+        state: latest
+      when: ansible_distribution in ["Ubuntu", "Debian"]
+
+    - name: "Install HTTPD and PHP on Rocky/CentOS"
+      tags: httpd,Rocky
+      dnf:
+        name:
+          - httpd
+          - php
+        state: latest
+      when: ansible_distribution in ["Rocky", "CentOS"]
+

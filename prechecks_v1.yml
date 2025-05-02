@@ -1,0 +1,64 @@
+---
+- name: Pre-checks for Rocky Linux and generate report
+  hosts: all
+  become: true
+  gather_facts: false
+
+  vars:
+    report_file: /tmp/system_precheck_report.txt  # File location on the remote machine
+    local_report_dir: /tmp/reports/  # Directory on the Ansible control machine to store reports
+
+  tasks:
+
+    - name: Start report file with hostname
+      shell: |
+        echo "Precheck Report for Host: $(hostname)" > {{ report_file }}
+        echo "Generated on: $(date)" >> {{ report_file }}
+        echo "======================================" >> {{ report_file }}
+
+    - name: Append kernel version
+      shell: |
+        echo -e "\nKernel Version:" >> {{ report_file }}
+        uname -r | tee -a {{ report_file }}
+        echo -e "\n(Line count: $(uname -r | wc -l))" >> {{ report_file }}
+
+    - name: Append filesystem usage excluding tmpfs
+      shell: |
+        echo -e "\nFilesystem Usage (excluding tmpfs):" >> {{ report_file }}
+        df -hT --exclude-type=tmpfs --exclude-type=devtmpfs >> {{ report_file }}
+        echo -e "\n(Line count: $(df -hT --exclude-type=tmpfs --exclude-type=devtmpfs | wc -l))" >> {{ report_file }}
+
+    - name: Append IP addresses
+      shell: |
+        echo -e "\nIP Addresses:" >> {{ report_file }}
+        ip -4 addr show >> {{ report_file }}
+        echo -e "\n(Line count: $(ip -4 addr show | wc -l))" >> {{ report_file }}
+
+    - name: Append bond info (if exists)
+      shell: |
+        echo -e "\nBonding Info (if any):" >> {{ report_file }}
+        if [ -f /proc/net/bonding/bond0 ]; then
+          cat /proc/net/bonding/bond0 >> {{ report_file }}
+          echo -e "\n(Line count: $(cat /proc/net/bonding/bond0 | wc -l))" >> {{ report_file }}
+        else
+          echo "No bonding interfaces found." >> {{ report_file }}
+        fi
+
+    - name: Append iptables rules
+      shell: |
+        echo -e "\niptables Rules:" >> {{ report_file }}
+        iptables -S >> {{ report_file }}
+        echo -e "\n(Line count: $(iptables -S | wc -l))" >> {{ report_file }}
+
+    - name: Append routing table
+      shell: |
+        echo -e "\nRouting Table:" >> {{ report_file }}
+        ip route show >> {{ report_file }}
+        echo -e "\n(Line count: $(ip route show | wc -l))" >> {{ report_file }}
+
+    - name: Fetch the report to the Ansible control machine
+      fetch:
+        src: "{{ report_file }}"
+        dest: "{{ local_report_dir }}{{ inventory_hostname }}_system_precheck_report.txt"
+        flat: yes
+
