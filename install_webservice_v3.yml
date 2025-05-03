@@ -1,16 +1,26 @@
 ---
 
-- hosts: all
+- hosts: webservers 
   become: true
   tasks:
 
   - name: install HTTP package
     package:
       name: 
-        - "{{ web_package }}"
-        - "{{ python_package }}"
+        - apache2 
+        - libapache2-mod-wsgi-py3
       state: latest
       update_cache: true
+    when: ansible_distribution in ["Ubuntu","Debian"]
+
+  - name: Install HTTP Package
+    package:
+      name:
+        - httpd
+        - python3-mod_wsgi
+      state: latest
+      update_cache: true
+    when: ansible_distribution in ["Rocky","CentOS"]
 
   - name: Start and enable httpd service
     service:
@@ -18,3 +28,12 @@
       state: started
       enabled: true 
     when: ansible_distribution in ["Rocky","CentOS"]
+
+  - name: copy default html file for site
+    tags: apache, apache2,httpd
+    copy:
+      src: default_Site.html 
+      dest: /var/www/html/index.html
+      owner: root
+      group: root
+      mode: 0644

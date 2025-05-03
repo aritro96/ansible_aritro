@@ -41,3 +41,69 @@
         state: latest
       when: ansible_distribution in ["Rocky", "CentOS"]
 
+- name: Installing terraform in WorkStation
+  tags: workstation,terraform
+  hosts: workstation
+  become: true
+  tasks:
+
+    - name: install unzip
+      package:
+        name: unzip
+
+    - name: install terraform
+      unarchive:
+        src: https://releases.hashicorp.com/terraform/1.11.4/terraform_1.11.4_linux_amd64.zip
+        dest: /usr/local/bin
+        remote_src: yes
+        mode: 0755
+        owner: root
+        group: root
+        
+- name: Installing DB in DB Servers
+  tags: mariadb,database,dbservers
+  hosts: db_servers
+  become: true
+  tasks:
+  
+    - name: install mariadb
+      package:
+        name: mariadb-server
+        state: latest
+    
+    - name: Starting mariadb in Rocky/CentOS
+      service: 
+        name: mariadb
+        state: started
+        enabled: true
+      when: ansible_distribution in ["Rocky","CentOS"]
+      
+    - name: Start and enable MariaDB on Ubuntu/Debian
+      service: 
+        name: mysql
+        state: started
+        enabled: true
+      when: ansible_distribution in ["Ubuntu", "Debian"]
+      
+- name: Installing samba for File Server
+  tags: samba,fileserver
+  hosts: file_servers
+  become: true
+  tasks:
+  
+    - name: Install Samba on Rocky/CentOS
+      package:
+        name: 
+          - samba
+          - samba-client
+          - samba-common
+        state: latest
+      when: ansible_distribution in ["Rocky","CentOS"]
+      
+    - name: Install Samba on Ubuntu
+      package:
+        name: samba
+        state: latest
+      when: ansible_distribution in ["Ubuntu","Debian"]
+        
+
