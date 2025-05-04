@@ -1,0 +1,56 @@
+---
+- name: Run pre or post checks on selected servers
+  hosts: "{{ target_hosts }}"
+  gather_facts: true
+  vars:
+    date_stamp: "{{ ansible_date_time.date }}"
+    remote_output_file: "/tmp/{{ client_name }}_{{ check_type }}_{{ date_stamp }}_{{ inventory_hostname }}.txt"
+    local_output_dir: "/home/aritro/collected_outputs"
+
+  tasks:
+
+    - name: Ensure remote /tmp directory exists
+      ansible.builtin.file:
+        path: "/tmp/pre_post_checks"
+        state: directory
+        mode: '0755'
+
+    - name: Mark start of host output
+      ansible.builtin.lineinfile:
+        path: "{{ remote_output_file }}"
+        line: "===== Host: {{ inventory_hostname }} ====="
+        create: yes
+        mode: '0644'
+
+    - name: Run checks and save output (with stderr and spacing)
+      ansible.builtin.shell: |
+        {
+          echo "";
+          echo "=== Command: {{ item }} ===";
+          {{ item }};
+        } >> "{{ remote_output_file }}" 2>&1
+      ignore_errors: true
+      loop:
+        - "echo 'Hostname:' && hostname"
+        - "df -hTx tmpfs | head -n 1 | df -hTx tmfs | tail -n +2 | sort -k7"
+        - "df -hTx tmpfs | wc -l"
+        - "ip a"
+        - "ip a | wc -l"
+        - "netstat -rn"
+        - "netstat -rn|wc -l"
+        - "cat /etc/resolv.conf"
+        - "cat /etc/fstab"
+        - "ps -ef | grep ntp || true"
+        - "ntpstat || true"
+        - "cat /etc/exports || true"
+        - "systemctl -l | grep -i nfs-client || true"
+        - "ipcs -ls || true"
+        - "systemctl is-active firewalld"
+        - "systemctl status nfs-server || true"
+
+    - name: Fetch output file to control node
+      ansible.builtin.fetch:
+        src: "{{ remote_output_file }}"
+        dest: "{{ local_output_dir }}/"
+        flat: yes
+

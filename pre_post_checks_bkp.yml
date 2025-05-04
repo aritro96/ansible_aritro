@@ -1,0 +1,57 @@
+---
+- name: Run pre or post checks on selected servers
+  hosts: "{{ target_hosts }}"
+  gather_facts: true  # Needed to get ansible_date_time
+  vars:
+    date_stamp: "{{ ansible_date_time.date }}"  # e.g. 2025-05-04
+
+  tasks:
+
+    - name: Create output directory
+      ansible.builtin.file:
+        path: "/tmp/pre_post_checks"
+        state: directory
+        mode: '0755'
+
+    - name: Set per-host output filename
+      set_fact:
+        output_filename: "/tmp/pre_post_checks/{{ client_name }}_{{ check_type }}_{{ date_stamp }}_{{ inventory_hostname }}.txt"
+
+    - name: Mark start of host output
+      ansible.builtin.lineinfile:
+        path: "{{ output_filename }}"
+        line: "===== Host: {{ inventory_hostname }} ====="
+        create: yes
+        mode: '0644'
+
+    - name: Run command and collect output
+      ansible.builtin.shell: "{{ item }}"
+      loop:
+        - "hostname"
+        - "df -hTx tmpfs | head -n 1 && df -hTx tmpfs | tail -n +2 | sort -k7"
+        - "df -hTx tmpfs | wc -l"
+        - "ip a"
+        - "ip a | wc -l"
+        - "netstat -rn"
+        - "netstat -rn | wc -l"
+        - "cat /etc/resolv.conf"
+        - "cat /etc/resolv.conf | wc -l"
+        - "cat /etc/fstab"
+        - "cat /etc/fstab | wc -l"
+        - "ps -ef | grep ntp || true"
+        - "ntpstat || true"
+        - "cat /etc/exports || true"
+        - "systemctl -l | grep -i nfs-client || true"
+        - "ipcs -ls || true"
+        - "systemctl status firewalld || true"
+        - "systemctl status nfs-server || true"
+      register: command_output
+
+    - name: Append command output to file
+      ansible.builtin.lineinfile:
+        path: "{{ output_filename }}"
+        line: "{{ item.stdout }}"
+        create: yes
+        mode: '0644'
+      loop: "{{ command_output.results }}"
+
